@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="第二次世界大戦のドイツ・日本の軍事技術を工学的・歴史的視点から解説するデジタル・アーカイブ。戦艦、戦闘機、潜水艦の技術進化を辿ります。">
+    <title>WWII 軍事技術アーカイブ | 未来へ繋ぐ歴史の断片</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        :root {
+            --font-primary: 'Noto Sans JP', sans-serif;
+            --font-display: 'Noto Serif JP', serif;
+        }
+
+        .hero {
+            position: relative;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background-color: #050505;
+        }
+
+        .hero__bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('assets/images/hero.png');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.5;
+            transform: scale(1.1);
+            animation: heroZoom 20s infinite alternate linear;
+        }
+
+        @keyframes heroZoom {
+            from {
+                transform: scale(1);
+            }
+
+            to {
+                transform: scale(1.15);
+            }
+        }
+
+        .hero__overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.8) 100%);
+        }
+
+        .hero__content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            max-width: 900px;
+            padding: 0 20px;
+        }
+
+        .hero__badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: var(--gradient-gold);
+            color: var(--color-bg-primary);
+            font-family: var(--font-mono);
+            font-weight: 700;
+            border-radius: 50px;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.9rem;
+            box-shadow: 0 0 20px rgba(201, 162, 39, 0.3);
+        }
+
+        .hero__title {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-family: var(--font-display);
+            line-height: 1.1;
+            margin-bottom: 24px;
+            color: #fff;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .hero__description {
+            font-size: clamp(1rem, 2vw, 1.4rem);
+            line-height: 1.8;
+            color: var(--color-text-secondary);
+            margin-bottom: 40px;
+            font-weight: 300;
+        }
+
+        .hero__actions {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .featured-grid {
+            margin-top: -100px;
+            position: relative;
+            z-index: 20;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            padding: 0 20px;
+        }
+
+        .feature-card {
+            background: var(--color-bg-card);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            position: relative;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--color-metal-gold);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .feature-card__img {
+            height: 200px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        .feature-card__overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.8) 100%);
+        }
+
+        .feature-card__content {
+            padding: 30px;
+        }
+
+        .feature-card__title {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+
+        .feature-card__text {
+            color: var(--color-text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ナビゲーション -->
+    <nav class="nav" id="nav">
+        <div class="nav__container">
+            <a href="index.html" class="nav__logo">
+                <span class="nav__logo-icon">技</span>
+                <span>軍事技術史</span>
+            </a>
+
+            <ul class="nav__menu" id="navMenu">
+                <li><a href="index.html" class="nav__link active">ホーム</a></li>
+                <li><a href="aircraft.html" class="nav__link">航空機</a></li>
+                <li><a href="naval.html" class="nav__link">艦艇</a></li>
+                <li><a href="technology.html" class="nav__link">技術解説</a></li>
+                <li><a href="timeline.html" class="nav__link">年表</a></li>
+                <li><a href="compare.html" class="nav__link">比較</a></li>
+                <li><a href="about.html" class="nav__link">概要</a></li>
+            </ul>
+
+            <button class="nav__toggle" id="navToggle" aria-label="メニュー切り替え">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="hero__bg"></div>
+        <div class="hero__overlay"></div>
+        <div class="hero__content">
+            <span class="hero__badge">Digital Archive Project</span>
+            <h1 class="hero__title">鋼鉄の記憶を、<br>未来へ。</h1>
+            <p class="hero__description">
+                第二次世界大戦における軍事技術の進化は、現代文明の礎となりました。
+                工学的視点と歴史的公平性を持って、失われた技術の系譜を紐解きます。
+            </p>
+            <div class="hero__actions">
+                <a href="naval.html" class="btn btn--primary">艦艇アーカイブを見る</a>
+                <a href="aircraft.html" class="btn btn--secondary">航空機アーカイブを見る</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Featured Section -->
+    <main class="container">
+        <div class="featured-grid">
+            <div class="feature-card fade-in">
+                <div class="feature-card__img" style="background-image: url('assets/images/yamato.png');">
+                    <div class="feature-card__overlay"></div>
+                </div>
+                <div class="feature-card__content">
+                    <h3 class="feature-card__title">戦艦 大和</h3>
+                    <p class="feature-card__text">
+                        46cm主砲という空前絶後の火力を備えた、艦隊決戦思想の頂点。
+                        その巨大な船体には、当時の日本が持ちうる最高の造船技術が凝縮されていました。
+                    </p>
+                    <a href="detail/yamato.html" class="btn btn--text">詳細を見る →</a>
+                </div>
+            </div>
+
+            <div class="feature-card fade-in">
+                <div class="feature-card__img" style="background-image: url('assets/images/bismarck.png');">
+                    <div class="feature-card__overlay"></div>
+                </div>
+                <div class="feature-card__content">
+                    <h3 class="feature-card__title">戦艦 ビスマルク</h3>
+                    <p class="feature-card__text">
+                        大西洋を揺るがしたドイツ海軍の象徴。
+                        重装甲と高い生存性を誇り、イギリス海軍にとって最大の脅威となりました。
+                    </p>
+                    <a href="detail/bismarck.html" class="btn btn--text">詳細を見る →</a>
+                </div>
+            </div>
+
+            <div class="feature-card fade-in">
+                <div class="feature-card__img" style="background-image: url('assets/images/me262.png');">
+                    <div class="feature-card__overlay"></div>
+                </div>
+                <div class="feature-card__content">
+                    <h3 class="feature-card__title">Me 262 シュヴァルベ</h3>
+                    <p class="feature-card__text">
+                        世界初の実用ジェット戦闘機。レシプロ機の限界を打ち破り、
+                        現代航空工学の扉を開いた革新的技術の結晶です。
+                    </p>
+                    <a href="detail/me262.html" class="btn btn--text">詳細を見る →</a>
+                </div>
+            </div>
+        </div>
+
+        <section class="section">
+            <div class="section-header">
+                <span class="section-header__label">Core Concept</span>
+                <h2 class="section-header__title">技術史の客観的評価</h2>
+                <p class="section-header__description">
+                    本アーカイブは、政治的意図を排除し、純粋な工学技術の進化とその歴史的影響に焦点を当てています。
+                </p>
+            </div>
+
+            <div class="grid grid--2">
+                <div class="info-block fade-in">
+                    <h4 class="info-block__title">工学的視点</h4>
+                    <p class="info-block__text">
+                        ボイラーの圧力、装甲の材質、エンジンの燃焼効率。
+                        極限状態における技術者たちの苦闘と達成を数値とデータで分析します。
+                    </p>
+                </div>
+                <div class="info-block fade-in">
+                    <h4 class="info-block__title">歴史的教訓</h4>
+                    <p class="info-block__text">
+                        優れた技術がいかにして生まれ、そしていかにして役割を終えたのか。
+                        技術の頂点が同時にその終焉でもあったという、歴史の逆説を探求します。
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__bottom">
+                <p class="footer__copyright">© 2024 第二次世界大戦 軍事技術アーカイブ</p>
+                <p class="footer__disclaimer">本サイトは教育・研究目的で作成されています。</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script src="js/animations.js"></script>
+</body>
+
+</html>
