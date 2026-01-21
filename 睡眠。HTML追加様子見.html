@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Sleep Insight Lite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;700&display=swap');
+        
+        body { 
+            font-family: 'Inter', 'Noto Sans JP', sans-serif; 
+            background-color: #020617; 
+            color: #f1f5f9; 
+            margin: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .card { 
+            background: #0f172a; 
+            border: 1px solid #1e293b; 
+            border-radius: 1.25rem; 
+        }
+
+        .accent-gradient { 
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); 
+        }
+
+        .score-circle { 
+            transition: stroke-dashoffset 0.8s ease-out; 
+        }
+
+        input[type="time"], input[type="date"] {
+            color-scheme: dark;
+        }
+
+        #delete-modal, #sync-modal {
+            background-color: rgba(2, 6, 23, 0.8);
+            backdrop-filter: blur(4px);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+
+    <div class="max-w-md mx-auto p-4 space-y-6">
+        <!-- Header -->
+        <header class="flex justify-between items-center py-2">
+            <div>
+                <h1 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i data-lucide="moon" class="text-indigo-400"></i> Insight Lite
+                </h1>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Offline Data Sync Mode</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="openSyncModal()" class="p-2 bg-slate-800 rounded-lg border border-slate-700 hover:bg-slate-700 transition-colors">
+                    <i data-lucide="refresh-cw" size="16" class="text-slate-300"></i>
+                </button>
+                <input type="date" id="target-date" onchange="loadLogByDate()" class="bg-slate-800 text-white text-xs p-2 rounded-lg border border-slate-700 outline-none">
+            </div>
+        </header>
+
+        <!-- Input -->
+        <section class="card p-5 space-y-5">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-1">
+                    <label class="text-[10px] text-slate-500 uppercase font-bold">入眠</label>
+                    <input type="time" id="sleep-time" value="23:00" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl outline-none text-lg font-bold">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] text-slate-500 uppercase font-bold">起床</label>
+                    <input type="time" id="wake-time" value="07:00" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl outline-none text-lg font-bold">
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-[10px] text-slate-500 uppercase font-bold text-center block">目覚めの気分</label>
+                <div class="flex justify-between gap-1">
+                    <button onclick="setMood(1)" class="mood-btn flex-1 py-3 rounded-xl bg-slate-900 border-2 border-transparent transition-all" data-mood="1">😫</button>
+                    <button onclick="setMood(2)" class="mood-btn flex-1 py-3 rounded-xl bg-slate-900 border-2 border-transparent transition-all" data-mood="2">😑</button>
+                    <button onclick="setMood(3)" class="mood-btn flex-1 py-3 rounded-xl bg-slate-900 border-2 border-transparent transition-all" data-mood="3">🙂</button>
+                    <button onclick="setMood(4)" class="mood-btn flex-1 py-3 rounded-xl bg-slate-900 border-2 border-transparent transition-all" data-mood="4">😊</button>
+                    <button onclick="setMood(5)" class="mood-btn flex-1 py-3 rounded-xl bg-slate-900 border-2 border-transparent transition-all" data-mood="5">🤩</button>
+                </div>
+            </div>
+
+            <button onclick="saveLog()" class="w-full py-4 accent-gradient text-white font-bold rounded-xl shadow-lg active:scale-95 transition-all">
+                記録を保存して診断
+            </button>
+        </section>
+
+        <!-- Result -->
+        <section id="result-section" class="hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <div class="card p-5 space-y-6">
+                <div class="flex items-center justify-between">
+                    <div class="relative w-20 h-20">
+                        <svg class="w-full h-full transform -rotate-90">
+                            <circle cx="40" cy="40" r="34" stroke="#1e293b" stroke-width="6" fill="transparent" />
+                            <circle id="score-circle" cx="40" cy="40" r="34" stroke="#6366f1" stroke-width="6" fill="transparent" stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round" class="score-circle" />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span id="score-val" class="text-xl font-black text-white">--</span>
+                            <span class="text-[7px] uppercase text-slate-500 font-bold">Score</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div id="rank-badge" class="px-3 py-1 rounded-lg bg-indigo-500/20 text-indigo-400 font-black text-lg mb-1 border border-indigo-500/30">--</div>
+                        <p id="judgment-text" class="text-xs font-bold text-slate-300">良好な睡眠です</p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                    <p id="summary-text" class="text-sm text-slate-300 leading-relaxed"></p>
+                </div>
+
+                <div class="space-y-2">
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">改善アドバイス</p>
+                    <div id="advice-list" class="space-y-2"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Chart -->
+        <section class="card p-5">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xs font-bold uppercase text-slate-500 tracking-widest">直近のトレンド</h2>
+                <span id="avg-label" class="text-[10px] text-indigo-400 font-bold"></span>
+            </div>
+            <div class="h-40">
+                <canvas id="sleepChart"></canvas>
+            </div>
+        </section>
+
+        <!-- History -->
+        <div id="history-list" class="space-y-2"></div>
+    </div>
+
+    <!-- 削除確認モーダル -->
+    <div id="delete-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="card p-6 w-full max-w-xs shadow-2xl border-indigo-500/30">
+            <h3 class="text-lg font-bold mb-2">記録を削除しますか？</h3>
+            <p class="text-sm text-slate-400 mb-6">この操作は取り消せません。</p>
+            <div class="flex gap-3">
+                <button onclick="closeDeleteModal()" class="flex-1 py-3 bg-slate-800 rounded-xl text-sm font-bold">キャンセル</button>
+                <button id="confirm-delete-btn" class="flex-1 py-3 bg-red-600 rounded-xl text-sm font-bold">削除する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 同期モーダル (JSON連動) -->
+    <div id="sync-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="card p-6 w-full max-w-sm shadow-2xl border-indigo-500/30">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">データ管理</h3>
+                <button onclick="closeSyncModal()" class="text-slate-500"><i data-lucide="x" size="20"></i></button>
+            </div>
+            
+            <p class="text-[11px] text-slate-400 mb-4 leading-relaxed">データをJSONでやり取りするか、アプリを丸ごとHTMLとして保存できます。</p>
+            
+            <div class="space-y-3">
+                <button onclick="exportData()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all">
+                    <i data-lucide="download" size="16" class="text-indigo-400"></i>
+                    データをJSONで書き出す
+                </button>
+                
+                <div class="relative">
+                    <input type="file" id="import-file" accept=".json" onchange="importData(event)" class="hidden">
+                    <button onclick="document.getElementById('import-file').click()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all">
+                        <i data-lucide="upload" size="16" class="text-emerald-400"></i>
+                        JSONファイルを読み込む
+                    </button>
+                </div>
+
+                <button onclick="exportFullHTML()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all text-white">
+                    <i data-lucide="file-code" size="16"></i>
+                    アプリごとHTMLで保存
+                </button>
+            </div>
+            
+            <div class="mt-6 pt-6 border-t border-slate-800 flex justify-between items-center">
+                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Status</span>
+                <span id="sync-status" class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Ready to sync</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sleepHistory = JSON.parse(localStorage.getItem('sleep_lite_v1') || '[]');
+        let chartInstance = null;
+        let currentMood = 3;
+        let pendingDeleteDate = null;
+
+        function setMood(m) {
+            currentMood = m;
+            document.querySelectorAll('.mood-btn').forEach(btn => {
+                const isSelected = parseInt(btn.dataset.mood) === m;
+                btn.style.borderColor = isSelected ? '#6366f1' : 'transparent';
+                btn.style.backgroundColor = isSelected ? '#1e1b4b' : '#0f172a';
+            });
+        }
+        setMood(3);
+
+        function loadLogByDate() {
+            const targetDate = document.getElementById('target-date').value;
+            const log = sleepHistory.find(l => l.date === targetDate);
+            
+            if (log) {
+                document.getElementById('sleep-time').value = log.sleepTime;
+                document.getElementById('wake-time').value = log.wakeTime;
+                setMood(log.mood);
+                runInstantDiagnosis(log);
+            } else {
+                document.getElementById('result-section').classList.add('hidden');
+                document.getElementById('sleep-time').value = "23:00";
+                document.getElementById('wake-time').value = "07:00";
+                setMood(3);
+            }
+        }
+
+        function saveLog() {
+            const date = document.getElementById('target-date').value;
+            const sTime = document.getElementById('sleep-time').value;
+            const wTime = document.getElementById('wake-time').value;
+
+            const [sH, sM] = sTime.split(':').map(Number);
+            const [wH, wM] = wTime.split(':').map(Number);
+            let diff = (wH * 60 + wM) - (sH * 60 + sM);
+            if (diff < 0) diff += 1440;
+            const hours = parseFloat((diff / 60).toFixed(1));
+
+            const log = { date, sleepTime: sTime, wakeTime: wTime, durationHours: hours, mood: currentMood };
+            
+            const idx = sleepHistory.findIndex(l => l.date === date);
+            if (idx > -1) sleepHistory[idx] = log;
+            else sleepHistory.push(log);
+            
+            sleepHistory.sort((a,b) => b.date.localeCompare(a.date));
+            localStorage.setItem('sleep_lite_v1', JSON.stringify(sleepHistory));
+            
+            updateUI();
+            runInstantDiagnosis(log);
+        }
+
+        function openSyncModal() {
+            document.getElementById('sync-modal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeSyncModal() {
+            document.getElementById('sync-modal').classList.add('hidden');
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(sleepHistory, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sleep_logs_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            document.getElementById('sync-status').textContent = "Export Complete";
+            setTimeout(() => document.getElementById('sync-status').textContent = "Ready to sync", 2000);
+        }
+
+        function exportFullHTML() {
+            const currentHTML = document.documentElement.outerHTML;
+            // ローカルストレージの値を初期値として埋め込んだスクリプトを生成
+            const dataToEmbed = JSON.stringify(sleepHistory);
+            const scriptToEmbed = `<script>localStorage.setItem('sleep_lite_v1', '${dataToEmbed}');<\/script>`;
+            
+            // </body>の直前にデータをセットするスクリプトを挿入したHTMLを作成
+            const fullContent = currentHTML.replace('</body>', scriptToEmbed + '</body>');
+            
+            const blob = new Blob([fullContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `DeepSleepInsight_Backup_${new Date().toISOString().split('T')[0]}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            document.getElementById('sync-status').textContent = "App Saved";
+            setTimeout(() => document.getElementById('sync-status').textContent = "Ready to sync", 2000);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (!Array.isArray(imported)) throw new Error("Format invalid");
+                    
+                    const merged = [...sleepHistory];
+                    imported.forEach(newLog => {
+                        const existingIdx = merged.findIndex(l => l.date === newLog.date);
+                        if (existingIdx > -1) merged[existingIdx] = newLog;
+                        else merged.push(newLog);
+                    });
+                    
+                    merged.sort((a,b) => b.date.localeCompare(a.date));
+                    sleepHistory = merged;
+                    localStorage.setItem('sleep_lite_v1', JSON.stringify(sleepHistory));
+                    
+                    updateUI();
+                    loadLogByDate();
+                    
+                    document.getElementById('sync-status').textContent = "Import Success";
+                    setTimeout(() => {
+                        document.getElementById('sync-status').textContent = "Ready to sync";
+                        closeSyncModal();
+                    }, 1500);
+                } catch (err) {
+                    document.getElementById('sync-status').textContent = "Format Error";
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function openDeleteModal(date) {
+            pendingDeleteDate = date;
+            document.getElementById('delete-modal').classList.remove('hidden');
+            document.getElementById('confirm-delete-btn').onclick = () => {
+                sleepHistory = sleepHistory.filter(l => l.date !== pendingDeleteDate);
+                localStorage.setItem('sleep_lite_v1', JSON.stringify(sleepHistory));
+                updateUI();
+                closeDeleteModal();
+                
+                const targetDate = document.getElementById('target-date').value;
+                if (pendingDeleteDate === targetDate) {
+                    loadLogByDate();
+                }
+            };
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').classList.add('hidden');
+            pendingDeleteDate = null;
+        }
+
+        function runInstantDiagnosis(log) {
+            document.getElementById('result-section').classList.remove('hidden');
+            
+            let score = 0;
+            if (log.durationHours >= 7 && log.durationHours <= 8) score += 60;
+            else if (log.durationHours > 8) score += 40;
+            else if (log.durationHours >= 6) score += 45;
+            else score += 30;
+
+            score += (log.mood * 8);
+
+            const circle = document.getElementById('score-circle');
+            circle.style.strokeDashoffset = 213.6 - (213.6 * score / 100);
+            document.getElementById('score-val').textContent = score;
+
+            let rank = 'C', judgment = '', summary = '', advices = [];
+
+            if (score >= 90) { rank = 'S'; judgment = '最高！'; summary = '理想的な睡眠リズムです。体力が十分に回復しています。'; advices = ['この調子を維持しましょう','早寝早起きの継続','朝の光を浴びる']; }
+            else if (score >= 75) { rank = 'A'; judgment = '良好'; summary = 'しっかり眠れています。日中のパフォーマンスも期待できます。'; advices = ['寝る前のスマホを控える','湯船に浸かる','枕の高さの確認']; }
+            else if (score >= 60) { rank = 'B'; judgment = '普通'; summary = '平均的な睡眠です。もう少し時間を確保できると理想的です。'; advices = ['あと30分早く寝る','カフェインを控える','ストレッチを行う']; }
+            else { rank = 'D'; judgment = '不足'; summary = '睡眠不足の可能性があります。早めに休息をとってください。'; advices = ['今夜は22時までに寝る','昼寝を15分とる','寝室を暗くする']; }
+
+            document.getElementById('rank-badge').textContent = rank;
+            document.getElementById('judgment-text').textContent = judgment;
+            document.getElementById('summary-text').textContent = summary;
+            document.getElementById('advice-list').innerHTML = advices.map(a => `
+                <div class="flex items-center gap-2 text-xs text-slate-300">
+                    <i data-lucide="check-circle" class="text-indigo-400" size="14"></i>
+                    <span>${a}</span>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('sleepChart').getContext('2d');
+            const last7 = [...sleepHistory].reverse().slice(-7);
+            const dataValues = last7.map(l => l.durationHours);
+            const labels = last7.map(l => l.date.split('-').slice(1).join('/'));
+
+            if (dataValues.length > 0) {
+                const avg = (dataValues.reduce((a,b) => a+b, 0) / dataValues.length).toFixed(1);
+                document.getElementById('avg-label').textContent = `平均 ${avg}h`;
+            } else {
+                document.getElementById('avg-label').textContent = "";
+            }
+
+            if (chartInstance) chartInstance.destroy();
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, 160);
+            gradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
+            gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: dataValues,
+                        borderColor: '#6366f1',
+                        borderWidth: 3,
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#6366f1',
+                        pointBorderColor: '#fff',
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            display: true,
+                            beginAtZero: true,
+                            suggestedMax: 10,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#64748b', font: { size: 9 }, stepSize: 2 }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#64748b', font: { size: 9 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            if (sleepHistory.length === 0) {
+                list.innerHTML = `<p class="text-center text-xs text-slate-600 py-4 italic">履歴がありません</p>`;
+                return;
+            }
+            list.innerHTML = sleepHistory.slice(0, 5).map(log => `
+                <div class="card p-3 flex justify-between items-center bg-slate-900/40">
+                    <div class="flex items-center gap-3">
+                        <span class="text-lg">${['','😫','😑','🙂','😊','🤩'][log.mood]}</span>
+                        <div class="flex flex-col">
+                            <span class="text-[9px] font-bold text-slate-500 uppercase">${log.date}</span>
+                            <span class="text-xs text-slate-300">${log.sleepTime}-${log.wakeTime}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="text-xs font-bold text-indigo-400">${log.durationHours}h</span>
+                        <button onclick="openDeleteModal('${log.date}')" class="text-slate-600 hover:text-red-400 p-1 transition-colors">
+                            <i data-lucide="trash-2" size="16"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function updateUI() {
+            updateChart();
+            renderHistory();
+        }
+
+        window.onload = () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('target-date').value = today;
+            updateUI();
+            loadLogByDate();
+            lucide.createIcons();
+        };
+    </script>
+</body>
+</html>
+
